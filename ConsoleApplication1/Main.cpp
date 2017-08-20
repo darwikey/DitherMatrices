@@ -21,6 +21,32 @@ int  GetDistance(IntVector2 c0, IntVector2 c1)
 	return mind;
 }
 
+void ConvertMatrixToCode(bool _normalized)
+{
+	std::ofstream File("code.c");
+	File << "const " << (_normalized ? "float" : "int") << " DitherMatrix[" << Mat.getWidth() << "][" << Mat.getHeight() << "] = {\n";
+	for (int x = 0; x < Mat.getWidth(); x++)
+	{
+		File << "{";
+		for (int y = 0; y < Mat.getHeight(); y++)
+		{
+			if (_normalized)
+				File << (float)Mat[x][y] / (Mat.getWidth() * Mat.getHeight()) << "f";
+			else
+				File << Mat[x][y];
+			if (y != Mat.getHeight() - 1)
+				File << ", ";
+		}
+		if (x != Mat.getWidth() - 1)
+			File << "},\n";
+		else
+			File << "}";
+	}
+	File << "};";
+
+	File.close();
+}
+
 int main()
 {
 	for (auto & m : Mat)
@@ -69,6 +95,8 @@ int main()
 		}
 		Mat[cmin.x][cmin.y] = i;
 	}
+
+	ConvertMatrixToCode(true);
 
 	// Display matrix
 #if 0
