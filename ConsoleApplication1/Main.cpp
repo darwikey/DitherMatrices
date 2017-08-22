@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "GifWriter.h"
 
 #define SIZE 32
 Array2D<int> Mat(SIZE, SIZE);
@@ -25,10 +26,10 @@ void ConvertMatrixToCode(bool _normalized)
 {
 	std::ofstream File("code.c");
 	File << "const " << (_normalized ? "float" : "int") << " DitherMatrix[" << Mat.getWidth() << "][" << Mat.getHeight() << "] = {\n";
-	for (int x = 0; x < Mat.getWidth(); x++)
+	for (unsigned x = 0; x < Mat.getWidth(); x++)
 	{
 		File << "{";
-		for (int y = 0; y < Mat.getHeight(); y++)
+		for (unsigned y = 0; y < Mat.getHeight(); y++)
 		{
 			if (_normalized)
 				File << (float)Mat[x][y] / (Mat.getWidth() * Mat.getHeight()) << "f";
@@ -55,22 +56,22 @@ int main()
 	std::mt19937 RandomGenerator;
 	std::uniform_real_distribution<float> Random(0, 200);
 
-	for (int i = 1; i < Mat.getWidth() * Mat.getHeight(); i++)
+	for (unsigned i = 1; i < Mat.getWidth() * Mat.getHeight(); i++)
 	{
 		float dmin = 0;
 		IntVector2 cmin;
-		for (int x0 = 0; x0 < Mat.getWidth(); x0++)
+		for (unsigned x0 = 0; x0 < Mat.getWidth(); x0++)
 		{
-			for (int y0 = 0; y0 < Mat.getHeight(); y0++)
+			for (unsigned y0 = 0; y0 < Mat.getHeight(); y0++)
 			{
 				if (Mat[x0][y0])
 					continue;
 
 				float dmin2 = INT_MAX;
 				IntVector2 cmin2;
-				for (int x1 = 0; x1 < Mat.getWidth(); x1++)
+				for (unsigned x1 = 0; x1 < Mat.getWidth(); x1++)
 				{
-					for (int y1 = 0; y1 < Mat.getHeight(); y1++)
+					for (unsigned y1 = 0; y1 < Mat.getHeight(); y1++)
 					{
 						if (Mat[x1][y1] == 0)
 							continue;
@@ -96,10 +97,7 @@ int main()
 		Mat[cmin.x][cmin.y] = i;
 	}
 
-	ConvertMatrixToCode(true);
-
 	// Display matrix
-#if 0
 	for (int x = 0; x < Mat.getWidth(); x++)
 	{
 		for (int y = 0; y < Mat.getHeight(); y++)
@@ -112,12 +110,45 @@ int main()
 		}
 		std::cout << std::endl;
 	}
-#else
-	for (int i = 0; i < Mat.getWidth() * Mat.getHeight(); i+=1)
+
+	//ConvertMatrixToCode(true);
+	GifWriter Gif;
+	const int BlockSize = 4;
+	Gif.GifBegin("Matrix.gif", BlockSize * Mat.getWidth(), BlockSize * Mat.getHeight(), 3);
+	
+	for (unsigned i = 0; i < Mat.getWidth() * Mat.getHeight(); i += 1)
 	{
-		for (int x = 0; x < Mat.getWidth(); x++)
+		GifWriter::ArrayType MatTemp(BlockSize * Mat.getWidth(), BlockSize * Mat.getHeight());
+		for (unsigned x = 0; x < Mat.getWidth(); x++)
 		{
-			for (int y = 0; y < Mat.getHeight(); y++)
+			for (unsigned y = 0; y < Mat.getHeight(); y++)
+			{
+				for (unsigned xb = 0; xb < BlockSize; xb++)
+				{
+					for (unsigned yb = 0; yb < BlockSize; yb++)
+					{
+						Color c;
+						if (Mat[x][y] < i)
+							c = Color(255, 255, 255, 255);
+						else
+							c = Color(0, 0, 0, 255);
+						MatTemp[x * BlockSize + xb][y * BlockSize + yb] = c;
+					}
+				}
+			}
+		}
+		Gif.GifWriteFrame(MatTemp);
+	}
+
+	Gif.GifEnd();
+
+
+#if 0
+	for (unsigned i = 0; i < Mat.getWidth() * Mat.getHeight(); i+=1)
+	{
+		for (unsigned x = 0; x < Mat.getWidth(); x++)
+		{
+			for (unsigned y = 0; y < Mat.getHeight(); y++)
 			{
 				std::string str;
 				if (Mat[x][y] < i)

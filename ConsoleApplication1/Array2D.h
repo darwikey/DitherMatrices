@@ -268,7 +268,8 @@ public:
 		return mData != nullptr;
 	}
 
-
+	T* getData() { return mData; }
+	const T* getData() const { return mData; }
 
 
 private:

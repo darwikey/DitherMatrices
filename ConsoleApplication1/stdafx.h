@@ -17,4 +17,9 @@
 #include "Vector2.h"
 #include "Array2D.h"
 
-
+struct Color
+{
+	Color() {};
+	Color(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a) : r(_r), g(_g), b(_b), a(_a) {};
+	uint8_t r,g,b,a;
+};
