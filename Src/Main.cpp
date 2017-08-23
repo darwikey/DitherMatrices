@@ -1,8 +1,15 @@
 #include "stdafx.h"
 #include "GifWriter.h"
 
-#define SIZE 32
-Array2D<int> Mat(SIZE, SIZE);
+enum class CommandType
+{
+	NONE,
+	TO_CODE,
+	TO_GIF,
+	DEBUG
+};
+
+Array2D<int> Mat;
 
 int  GetDistance(IntVector2 c0, IntVector2 c1)
 {
@@ -22,23 +29,24 @@ int  GetDistance(IntVector2 c0, IntVector2 c1)
 	return mind;
 }
 
-void ConvertMatrixToCode(bool _normalized)
+void ConvertToCode(bool _normalized)
 {
-	std::ofstream File("code.c");
+	const char *Filename = "code.c";
+	std::ofstream File(Filename);
 	File << "const " << (_normalized ? "float" : "int") << " DitherMatrix[" << Mat.getWidth() << "][" << Mat.getHeight() << "] = {\n";
-	for (unsigned x = 0; x < Mat.getWidth(); x++)
+	for (unsigned y = 0; y < Mat.getHeight(); y++)
 	{
 		File << "{";
-		for (unsigned y = 0; y < Mat.getHeight(); y++)
+		for (unsigned x = 0; x < Mat.getWidth(); x++)
 		{
 			if (_normalized)
 				File << (float)Mat[x][y] / (Mat.getWidth() * Mat.getHeight()) << "f";
 			else
 				File << Mat[x][y];
-			if (y != Mat.getHeight() - 1)
+			if (x != Mat.getWidth() - 1)
 				File << ", ";
 		}
-		if (x != Mat.getWidth() - 1)
+		if (y != Mat.getHeight() - 1)
 			File << "},\n";
 		else
 			File << "}";
@@ -46,10 +54,98 @@ void ConvertMatrixToCode(bool _normalized)
 	File << "};";
 
 	File.close();
+	std::cout << "Save " << Filename << std::endl;
 }
 
-int main()
+void ConvertToGif()
 {
+	const char *Filename = "Matrix.gif";
+	GifWriter Gif;
+	const int BlockSize = 4;
+	Gif.GifBegin(Filename, BlockSize * Mat.getWidth(), BlockSize * Mat.getHeight(), 3);
+
+	for (unsigned i = 0; i < Mat.getWidth() * Mat.getHeight(); i += 1)
+	{
+		GifWriter::ArrayType MatTemp(BlockSize * Mat.getWidth(), BlockSize * Mat.getHeight());
+		for (unsigned x = 0; x < Mat.getWidth(); x++)
+		{
+			for (unsigned y = 0; y < Mat.getHeight(); y++)
+			{
+				Color c;
+				if (Mat[x][y] < i)
+					c = Color(255, 255, 255, 255);
+				else
+					c = Color(0, 0, 0, 255);
+				for (unsigned xb = 0; xb < BlockSize; xb++)
+				{
+					for (unsigned yb = 0; yb < BlockSize; yb++)
+					{
+						MatTemp[x * BlockSize + xb][y * BlockSize + yb] = c;
+					}
+				}
+			}
+		}
+		Gif.GifWriteFrame(MatTemp);
+	}
+
+	Gif.GifEnd();
+	std::cout << "Save " << Filename << std::endl;
+}
+
+void DebugMatrix()
+{
+	for (unsigned i = 0; i < Mat.getWidth() * Mat.getHeight(); i += 1)
+	{
+		for (unsigned y = 0; y < Mat.getHeight(); y++)
+		{
+			for (unsigned x = 0; x < Mat.getWidth(); x++)
+			{
+				std::string str;
+				if (Mat[x][y] < i)
+					str = std::to_string(Mat[x][y]);
+				while (str.size() < 4)
+					str.push_back(' ');
+
+				std::cout << str;
+			}
+			std::cout << std::endl;
+		}
+		//system("pause");
+		_sleep(100);
+		system("cls");
+	}
+}
+
+void PrintUsage()
+{
+	std::cout << "Usage: DitherMatrix [width] [height] [gif|code|debug]" << std::endl;
+}
+
+int main(int _argc, char** _argv)
+{
+	if (_argc <= 2)
+	{
+		std::cerr << "Incorrect arguments" << std::endl;
+		PrintUsage();
+		return 0;
+	}
+	Mat.allocate(atoi(_argv[1]), atoi(_argv[2]));
+	if (!Mat.getWidth() || !Mat.getHeight())
+	{
+		std::cerr << "Incorrect matrix dimension" << std::endl;
+		return 0;
+	}
+	CommandType Command = CommandType::NONE;
+	if (_argc > 3)
+	{
+		if (!stricmp(_argv[3], "gif"))
+			Command = CommandType::TO_GIF;
+		else if (!stricmp(_argv[3], "code"))
+			Command = CommandType::TO_CODE;
+		else if (!stricmp(_argv[3], "debug"))
+			Command = CommandType::DEBUG;
+	}
+
 	for (auto & m : Mat)
 		m = 0;
 
@@ -98,9 +194,9 @@ int main()
 	}
 
 	// Display matrix
-	for (int x = 0; x < Mat.getWidth(); x++)
+	for (int y = 0; y < Mat.getHeight(); y++)
 	{
-		for (int y = 0; y < Mat.getHeight(); y++)
+		for (int x = 0; x < Mat.getWidth(); x++)
 		{
 			std::string str = std::to_string(Mat[x][y]);
 			while (str.size() < 4)
@@ -111,60 +207,12 @@ int main()
 		std::cout << std::endl;
 	}
 
-	//ConvertMatrixToCode(true);
-	GifWriter Gif;
-	const int BlockSize = 4;
-	Gif.GifBegin("Matrix.gif", BlockSize * Mat.getWidth(), BlockSize * Mat.getHeight(), 3);
-	
-	for (unsigned i = 0; i < Mat.getWidth() * Mat.getHeight(); i += 1)
-	{
-		GifWriter::ArrayType MatTemp(BlockSize * Mat.getWidth(), BlockSize * Mat.getHeight());
-		for (unsigned x = 0; x < Mat.getWidth(); x++)
-		{
-			for (unsigned y = 0; y < Mat.getHeight(); y++)
-			{
-				for (unsigned xb = 0; xb < BlockSize; xb++)
-				{
-					for (unsigned yb = 0; yb < BlockSize; yb++)
-					{
-						Color c;
-						if (Mat[x][y] < i)
-							c = Color(255, 255, 255, 255);
-						else
-							c = Color(0, 0, 0, 255);
-						MatTemp[x * BlockSize + xb][y * BlockSize + yb] = c;
-					}
-				}
-			}
-		}
-		Gif.GifWriteFrame(MatTemp);
-	}
-
-	Gif.GifEnd();
-
-
-#if 0
-	for (unsigned i = 0; i < Mat.getWidth() * Mat.getHeight(); i+=1)
-	{
-		for (unsigned x = 0; x < Mat.getWidth(); x++)
-		{
-			for (unsigned y = 0; y < Mat.getHeight(); y++)
-			{
-				std::string str;
-				if (Mat[x][y] < i)
-					str = std::to_string(Mat[x][y]);
-				while (str.size() < 4)
-					str.push_back(' ');
-
-				std::cout << str;
-			}
-			std::cout << std::endl;
-		}
-		//system("pause");
-		_sleep(100);
-		system("cls");
-	}
-#endif
+	if (Command == CommandType::TO_CODE)
+		ConvertToCode(false);
+	if (Command == CommandType::TO_GIF)
+		ConvertToGif();
+	if (Command == CommandType::DEBUG)
+		DebugMatrix();
 
     return 0;
 }
