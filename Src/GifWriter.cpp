@@ -74,6 +74,11 @@ bool GifWriter::GifWriteFrame(const ArrayType & fImage, int bitDepth, bool dithe
 		return false;
 	}
 
+	ArrayType Tmp(fImage.getHeight(), fImage.getWidth());
+	for (unsigned x = 0; x < fImage.getWidth(); x++)
+		for (unsigned y = 0; y < fImage.getHeight(); y++)
+			Tmp[y][x] = fImage[x][y];
+
 	uint8_t* oldImage = nullptr;
 	if (!mFirstFrame) {
 		oldImage = (uint8_t*)mOldImage.getData();
@@ -82,12 +87,12 @@ bool GifWriter::GifWriteFrame(const ArrayType & fImage, int bitDepth, bool dithe
 	mFirstFrame = false;
 
 	GifPalette pal;
-	GifMakePalette((dither ? nullptr : oldImage), fImage, bitDepth, dither, &pal);
+	GifMakePalette((dither ? nullptr : oldImage), Tmp, bitDepth, dither, &pal);
 
 	if (dither)
-		GifDitherImage(oldImage, (uint8_t*)fImage.getData(), (uint8_t*)mOldImage.getData(), &pal);
+		GifDitherImage(oldImage, (uint8_t*)Tmp.getData(), (uint8_t*)mOldImage.getData(), &pal);
 	else
-		GifThresholdImage(oldImage, (uint8_t*)fImage.getData(), (uint8_t*)mOldImage.getData(), &pal);
+		GifThresholdImage(oldImage, (uint8_t*)Tmp.getData(), (uint8_t*)mOldImage.getData(), &pal);
 
 	GifWriteLzwImage(mFile, 0, 0, mDelay, &pal);
 
