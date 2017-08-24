@@ -4,7 +4,8 @@
 enum class CommandType
 {
 	NONE,
-	TO_CODE,
+	TO_CODE_INT,
+	TO_CODE_FLOAT,
 	TO_GIF,
 	DEBUG
 };
@@ -33,14 +34,19 @@ void ConvertToCode(bool _normalized)
 {
 	const char *Filename = "code.c";
 	std::ofstream File(Filename);
-	File << "const " << (_normalized ? "float" : "int") << " DitherMatrix[" << Mat.getWidth() << "][" << Mat.getHeight() << "] = {\n";
+	File << "const " << (_normalized ? "float" : "int") << " DitherMatrix[" << Mat.getHeight() << "][" << Mat.getWidth() << "] = {\n";
 	for (unsigned y = 0; y < Mat.getHeight(); y++)
 	{
 		File << "{";
 		for (unsigned x = 0; x < Mat.getWidth(); x++)
 		{
 			if (_normalized)
-				File << (float)Mat[x][y] / (Mat.getWidth() * Mat.getHeight()) << "f";
+			{
+				if (Mat[x][y])
+					File << (float)Mat[x][y] / (Mat.getWidth() * Mat.getHeight()) << "f";
+				else
+					File << "0.f";
+			}
 			else
 				File << Mat[x][y];
 			if (x != Mat.getWidth() - 1)
@@ -118,7 +124,12 @@ void DebugMatrix()
 
 void PrintUsage()
 {
-	std::cout << "Usage: DitherMatrix [width] [height] [gif|code|debug]" << std::endl;
+	std::cout << "Usage: DitherMatrix [width] [height] [command]" << std::endl
+		<< "Where [command] can be :" << std::endl
+		<< "\t gif: Create an animated gif representing the matrix" << std::endl
+		<< "\t code_int: Convert matrix to C array, each coefficient is an int" << std::endl
+		<< "\t code_float: Convert matrix to C array, each coefficient is a normalized float" << std::endl
+		<< "\t debug: Debug the matrix" << std::endl;
 }
 
 int main(int _argc, char** _argv)
@@ -140,10 +151,14 @@ int main(int _argc, char** _argv)
 	{
 		if (!stricmp(_argv[3], "gif"))
 			Command = CommandType::TO_GIF;
-		else if (!stricmp(_argv[3], "code"))
-			Command = CommandType::TO_CODE;
+		else if (!stricmp(_argv[3], "code_int"))
+			Command = CommandType::TO_CODE_INT;
+		else if (!stricmp(_argv[3], "code_float"))
+			Command = CommandType::TO_CODE_FLOAT;
 		else if (!stricmp(_argv[3], "debug"))
 			Command = CommandType::DEBUG;
+		else
+			std::cerr << "Invalid commmand" << std::endl;
 	}
 
 	for (auto & m : Mat)
@@ -194,9 +209,9 @@ int main(int _argc, char** _argv)
 	}
 
 	// Display matrix
-	for (int y = 0; y < Mat.getHeight(); y++)
+	for (unsigned y = 0; y < Mat.getHeight(); y++)
 	{
-		for (int x = 0; x < Mat.getWidth(); x++)
+		for (unsigned x = 0; x < Mat.getWidth(); x++)
 		{
 			std::string str = std::to_string(Mat[x][y]);
 			while (str.size() < 4)
@@ -207,8 +222,10 @@ int main(int _argc, char** _argv)
 		std::cout << std::endl;
 	}
 
-	if (Command == CommandType::TO_CODE)
+	if (Command == CommandType::TO_CODE_INT)
 		ConvertToCode(false);
+	if (Command == CommandType::TO_CODE_FLOAT)
+		ConvertToCode(true);
 	if (Command == CommandType::TO_GIF)
 		ConvertToGif();
 	if (Command == CommandType::DEBUG)
